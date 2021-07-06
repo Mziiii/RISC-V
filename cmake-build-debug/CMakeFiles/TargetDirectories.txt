@@ -1,0 +1,3 @@
+F:/ppca/code/RISC-V/cmake-build-debug/CMakeFiles/RISC_V.dir
+F:/ppca/code/RISC-V/cmake-build-debug/CMakeFiles/edit_cache.dir
+F:/ppca/code/RISC-V/cmake-build-debug/CMakeFiles/rebuild_cache.dir
