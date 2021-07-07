@@ -1,0 +1,44 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+F:/ppca/code/RISC-V/MemoryBox.h
+iostream
+-
+cstring
+-
+cstdio
+-
+
+F:/ppca/code/RISC-V/MyCpu.h
+cstdio
+-
+
+F:/ppca/code/RISC-V/Operator.h
+iostream
+-
+cstring
+-
+
+F:/ppca/code/RISC-V/Parser.h
+Operator.h
+F:/ppca/code/RISC-V/Operator.h
+MemoryBox.h
+F:/ppca/code/RISC-V/MemoryBox.h
+
+F:/ppca/code/RISC-V/main.cpp
+iostream
+-
+MemoryBox.h
+F:/ppca/code/RISC-V/MemoryBox.h
+Operator.h
+F:/ppca/code/RISC-V/Operator.h
+Parser.h
+F:/ppca/code/RISC-V/Parser.h
+MyCpu.h
+F:/ppca/code/RISC-V/MyCpu.h
+

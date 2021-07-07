@@ -42,6 +42,14 @@ namespace Mzu {
             return reg_busy[i];
         }
     };
+
+    int min(int a, int b) {
+        return a < b ? a : b;
+    }
+
+    int max(int a, int b) {
+        return a > b ? a : b;
+    }
 }
 #define RISCSIMULATOR_OPERATOR_H
 

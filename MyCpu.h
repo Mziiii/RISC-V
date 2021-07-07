@@ -2,6 +2,10 @@
 // Created by mzi12 on 2021/7/1.
 //
 
+
+#define Debug
+#define Debug_Printer
+
 #ifdef Debug
 
 #include <cstdio>
@@ -16,7 +20,16 @@ namespace Mzu {
         MemoryBox box;
         uint pc;
 
+        struct Predictor {
+            uint success = 0, total = 0;
+            int counter[128];
 
+            Predictor() {
+                memset(counter, 0, sizeof(counter));
+            }
+        } pd;
+
+        uint num_mem = 0u;
 
         struct IF_ID {
             bool isBusy = false;
@@ -25,6 +38,7 @@ namespace Mzu {
         } reg1;
 
         struct ID_EX {
+//            int pd = 0u;在于pc是否改变
             bool isBusy = false;
             uint pc = 0u;
             opType type = NOPE;
@@ -77,18 +91,24 @@ namespace Mzu {
             uint rs2 = getRS2(op);
             uint imm = getIMM(op, type);
             uint rd = getRD(op);
-            reg2.pc = reg1.pc;
-            reg2.imm = imm;
+
+            if ((rs1 != 0u && jar.check(rs1)) || (rs2 != 0u && jar.check(rs2))) return;
+
             reg2.type = type;
             reg2.rd = rd;
-            reg1.isBusy = false;
-            reg2.isBusy = true;
-//            if ((rs1 != 0u && jar.check(rs1)) || (rs2 != 0u && jar.check(rs2))) return;
+            reg2.pc = reg1.pc;
+            reg2.imm = imm;
             if (type != LUI && type != AUIPC && type != JAL && type != NOPE) {
                 reg2.rs1_data = jar[rs1];
-                jar.check(rs1) = true;
             }
+
             switch (type) {
+                case JAL:
+                    pc = reg1.pc + (int) reg2.imm;
+                    break;
+                case JALR:
+                    pc = ((reg2.rs1_data + (int) reg2.imm) >> 1) << 1;
+                    break;
                 case SLLI:
                 case SRLI:
                 case SRAI:
@@ -118,6 +138,28 @@ namespace Mzu {
                 default:
                     break;
             }
+            switch (type) {
+                case BEQ:
+                case BNE:
+                case BLT:
+                case BGE:
+                case BLTU:
+                case BGEU:
+                    if (pd.counter[(reg2.pc >> 2u) & 0b111111u] & 0b10u) pc = reg2.pc + reg2.imm;
+                    else pc += 4;
+                    ++pd.total;
+//                    reg2.pd = pd.counter[(reg1.pc >> 2u) & 0b111111u] & 0b10u;
+                case SB:
+                case SH:
+                case SW:
+                    reg2.rd = 0u;
+            }
+            //forwarding
+            if (reg3.rd)
+                if (reg3.rd == rs1 || reg3.rd == rs2) return;
+            if (reg2.rd != 0u) jar.check(reg2.rd) = true;
+            reg1.isBusy = false;
+            reg2.isBusy = true;
         }
 
         void EX() {//Execute
@@ -127,6 +169,7 @@ namespace Mzu {
             reg3.pc = reg2.pc;
             reg3.rd = reg2.rd;
             reg3.isBusy = true;
+            bool flag = false;
             switch (reg3.type) {
                 case LUI:
                     reg3.rd_data = reg2.imm;
@@ -135,30 +178,26 @@ namespace Mzu {
                     reg3.rd_data = reg2.imm + reg2.pc;
                     break;
                 case JAL:
-                    pc = reg1.pc + (int) reg2.imm;
-                    reg3.rd_data = reg2.pc + 4;
-                    break;
                 case JALR:
-                    pc = ((reg2.rs1_data + (int) reg2.imm) >> 1) << 1;
                     reg3.rd_data = reg2.pc + 4;
                     break;
                 case BEQ:
-                    if (reg2.rs1_data == reg2.rs2_data) pc = reg2.pc + reg2.imm;
+                    if (reg2.rs1_data == reg2.rs2_data) flag = true;
                     break;
                 case BNE:
-                    if (reg2.rs1_data != reg2.rs2_data) pc = reg2.pc + reg2.imm;
+                    if (reg2.rs1_data != reg2.rs2_data) flag = true;
                     break;
                 case BLT:
-                    if ((int) reg2.rs1_data < (int) reg2.rs2_data) pc = reg2.pc + reg2.imm;
+                    if ((int) reg2.rs1_data < (int) reg2.rs2_data) flag = true;
                     break;
                 case BGE:
-                    if ((int) reg2.rs1_data >= (int) reg2.rs2_data) pc = reg2.pc + reg2.imm;
+                    if ((int) reg2.rs1_data >= (int) reg2.rs2_data) flag = true;
                     break;
                 case BLTU:
-                    if (reg2.rs1_data < reg2.rs2_data) pc = reg2.pc + reg2.imm;
+                    if (reg2.rs1_data < reg2.rs2_data) flag = true;
                     break;
                 case BGEU:
-                    if (reg2.rs1_data >= reg2.rs2_data) pc = reg2.pc + reg2.imm;
+                    if (reg2.rs1_data >= reg2.rs2_data) flag = true;
                     break;
                 case LB:
                 case LH:
@@ -237,6 +276,32 @@ namespace Mzu {
                 case NOPE:
                     break;
             }
+            switch (reg3.type) {
+                case BEQ:
+                case BNE:
+                case BLT:
+                case BGE:
+                case BLTU:
+                case BGEU: {
+                    if (flag) {
+                        if (pd.counter[(reg2.pc >> 2u) & 0b111111u] & 0b10u) ++pd.success;
+                        else {
+                            pc = reg2.pc + reg2.imm;
+                            reg1.isBusy = false;
+                        }
+                        pd.counter[(reg2.pc >> 2u) & 0b111111u] = min(pd.counter[(reg2.pc >> 2u) & 0b111111u] + 1, 3);
+                    } else {
+                        if (pd.counter[(reg2.pc >> 2u) & 0b111111u] & 0b10u) {
+                            pc = reg2.pc + 4;
+                            reg1.isBusy = false;
+                        } else {
+                            ++pd.success;
+                        }
+                        pd.counter[(reg2.pc >> 2u) & 0b111111u] = max(pd.counter[(reg2.pc >> 2u) & 0b111111u] - 1, 0);
+                    }
+                }
+            }
+
             reg2.type = NOPE;
             reg2.pc = reg2.rd = reg2.rs1_data = reg2.rs2_data = reg2.imm = 0u;
         }
@@ -244,7 +309,12 @@ namespace Mzu {
         void MEM() {//Memory Access
             if (!reg3.isBusy || reg4.isBusy) return;
 
+            if (num_mem < 3u) {
+                ++num_mem;
+                return;
+            }
 
+            num_mem = 0u;
             reg3.isBusy = false;
             reg4.type = reg3.type;
             reg4.rd = reg3.rd;
@@ -307,6 +377,9 @@ namespace Mzu {
 
         void WB() {//Write Back
             if (!reg4.isBusy) return;
+#ifdef Debug_Printer
+            printReg();
+#endif
             reg4.isBusy = false;
             if (reg4.rd == 0) return;
             switch (reg4.type) {
@@ -330,7 +403,7 @@ namespace Mzu {
             reg4.type = NOPE;
         }
 
-#ifdef Debug
+#ifdef Debug_Printer
 
         void printReg() {
             for (int i = 0; i < 32; ++i) {
@@ -344,30 +417,31 @@ namespace Mzu {
         uint run() {
             pc = 0u;
             box.init();
-#ifdef Debug
-            //            box.print();
-#endif
-            while (true) {
-                IF();
-                if (reg1.code == END) break;
-                ID();
-                EX();
-                MEM();
+//#ifdef Debug
+//                        box.print();
+//#endif
+//            while (true) {
+//                IF();
+//                if (reg1.code == END) break;
+//                ID();
+//                EX();
+//                MEM();
+//                WB();
+//#ifdef Debug
+//                printReg();
+//#endif
+//            }
+//            return jar[10] & 0xff;
+
+            while (reg1.code != END) {
                 WB();
-#ifdef Debug
-                printReg();
-#endif
+                MEM();
+                EX();
+                if (reg1.code != END) ID();
+                IF();
+                if (reg1.code == END && reg1.isBusy && !reg2.isBusy && !reg3.isBusy && !reg4.isBusy) break;
             }
             return jar[10] & 0xff;
-
-//            while (reg1.code != END) {
-//                box.init();
-//                WB();
-//                MEM();
-//                EX();
-//                ID();
-//                IF();
-//            }
         }
     };
 }

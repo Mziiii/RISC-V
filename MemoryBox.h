@@ -9,7 +9,6 @@
 #include <cstring>
 #include <cstdio>
 
-//#define Debug
 namespace Mzu {
     typedef unsigned uint;
     typedef unsigned short ushort;
