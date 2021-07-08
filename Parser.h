@@ -91,7 +91,7 @@ namespace Mzu {
                     }
                 }
             }
-            case 0110011: {
+            case 0b0110011u: {
                 switch (funct3) {
                     case 0b000u: {
                         switch (funct7) {

@@ -4,7 +4,7 @@
 
 
 #define Debug
-#define Debug_Printer
+//#define Debug_Printer
 
 #ifdef Debug
 
@@ -93,7 +93,9 @@ namespace Mzu {
             uint rd = getRD(op);
 
             if ((rs1 != 0u && jar.check(rs1)) || (rs2 != 0u && jar.check(rs2))) return;
-
+#ifdef Debug_Printer
+            std::cout << "reg1: " << type << std::endl;
+#endif
             reg2.type = type;
             reg2.rd = rd;
             reg2.pc = reg1.pc;
@@ -134,7 +136,6 @@ namespace Mzu {
                 case OR:
                 case AND:
                     reg2.rs2_data = jar[rs2];
-                    jar.check(rs2) = true;
                 default:
                     break;
             }
@@ -146,17 +147,19 @@ namespace Mzu {
                 case BLTU:
                 case BGEU:
                     if (pd.counter[(reg2.pc >> 2u) & 0b111111u] & 0b10u) pc = reg2.pc + reg2.imm;
-                    else pc += 4;
+                    else pc = reg2.pc + 4;
                     ++pd.total;
 //                    reg2.pd = pd.counter[(reg1.pc >> 2u) & 0b111111u] & 0b10u;
                 case SB:
                 case SH:
                 case SW:
+                case NOPE:
                     reg2.rd = 0u;
             }
             //forwarding
             if (reg3.rd)
                 if (reg3.rd == rs1 || reg3.rd == rs2) return;
+
             if (reg2.rd != 0u) jar.check(reg2.rd) = true;
             reg1.isBusy = false;
             reg2.isBusy = true;
@@ -166,6 +169,9 @@ namespace Mzu {
             if (!reg2.isBusy || reg3.isBusy) return;
             reg2.isBusy = false;
             reg3.type = reg2.type;
+#ifdef Debug_Printer
+            std::cout << "reg2: " << reg2.type << std::endl;
+#endif
             reg3.pc = reg2.pc;
             reg3.rd = reg2.rd;
             reg3.isBusy = true;
@@ -317,6 +323,9 @@ namespace Mzu {
             num_mem = 0u;
             reg3.isBusy = false;
             reg4.type = reg3.type;
+#ifdef Debug_Printer
+            std::cout << "reg3: " << reg3.type << std::endl;
+#endif
             reg4.rd = reg3.rd;
             reg4.isBusy = true;
             switch (reg3.type) {
@@ -378,10 +387,11 @@ namespace Mzu {
         void WB() {//Write Back
             if (!reg4.isBusy) return;
 #ifdef Debug_Printer
-            printReg();
+//            printReg();
 #endif
             reg4.isBusy = false;
-            if (reg4.rd == 0) return;
+//            if (reg4.rd == 0) return;/////////////
+
             switch (reg4.type) {
                 case BEQ:
                 case BNE:
@@ -393,12 +403,20 @@ namespace Mzu {
                 case SH:
                 case SW:
                 case NOPE:
-                    break;
+                    return;//break;
                 default:
-                    jar.check(reg4.rd) = false;
-                    jar[reg4.rd] = reg4.rd_data;
+                    if (reg4.rd != 0) {
+                        jar.check(reg4.rd) = false;
+#ifdef Debug_Printer
+                        printJar();
+#endif
+                        jar[reg4.rd] = reg4.rd_data;
+                    }
                     break;
             }
+#ifdef Debug_Printer
+            std::cout << "reg4: " << reg4.type << std::endl;
+#endif
             reg4.rd_data = reg4.rd = 0u;
             reg4.type = NOPE;
         }
@@ -406,9 +424,19 @@ namespace Mzu {
 #ifdef Debug_Printer
 
         void printReg() {
+            std::cout << "--------printReg" << std::endl;
             for (int i = 0; i < 32; ++i) {
                 std::cout << i << ' ' << jar[i] << std::endl;
             }
+            std::cout << "----------------" << std::endl;
+        }
+
+        void printJar() {
+            std::cout << "--------printReg" << std::endl;
+            for (int i = 0; i < 32; ++i) {
+                std::cout << i << ' ' << jar.check(i) << std::endl;
+            }
+            std::cout << "----------------" << std::endl;
         }
 
 #endif
@@ -432,14 +460,45 @@ namespace Mzu {
 //#endif
 //            }
 //            return jar[10] & 0xff;
-
+#ifdef Debug
+            uint i = 0u;
+#endif
+#ifdef Debug_Printer
             while (reg1.code != END) {
+#ifdef Debug
+                ++i;
+                if (i == 120)
+                    break;
+#endif
                 WB();
                 MEM();
                 EX();
-                if (reg1.code != END) ID();
+                ID();
                 IF();
-                if (reg1.code == END && reg1.isBusy && !reg2.isBusy && !reg3.isBusy && !reg4.isBusy) break;
+                if (reg1.code == END && !reg1.isBusy && !reg2.isBusy && !reg3.isBusy && !reg4.isBusy) break;
+#ifdef Debug
+                std::cout << "---------------print busy" << std::endl;
+                std::cout << reg1.isBusy << ' ' << reg2.isBusy << ' ' << reg3.isBusy << ' ' << reg4.isBusy << std::endl;
+                std::cout << "---------------print end" << std::endl;
+#endif
+            }
+#endif
+            while (reg1.code != END) {
+#ifdef Debug
+                ++i;
+                std::cout << "***********   " << i << "   **********" << std::endl;
+#endif
+                WB();
+                MEM();
+                EX();
+                ID();
+                IF();
+                if (reg1.code == END && !reg1.isBusy && !reg2.isBusy && !reg3.isBusy && !reg4.isBusy) break;
+#ifdef Debug
+                std::cout << "---------------print busy" << std::endl;
+                std::cout << reg1.isBusy << ' ' << reg2.isBusy << ' ' << reg3.isBusy << ' ' << reg4.isBusy << std::endl;
+                std::cout << "---------------print end" << std::endl;
+#endif
             }
             return jar[10] & 0xff;
         }
