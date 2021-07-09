@@ -18,7 +18,7 @@ inline void write(uint x) {
 int main() {
     MzCPU cpu;
 //    std::cout << "Hello, World!" << std::endl;
-    freopen("../test.data", "r", stdin) ;
+//    freopen("../test.data", "r", stdin) ;
     write(cpu.run());
     return 0;
 }

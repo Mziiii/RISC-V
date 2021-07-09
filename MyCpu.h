@@ -48,12 +48,11 @@ namespace Mzu {
             uint rd = 0u;
         } reg2;
 
-        struct EX_MEM {//todo simplify
+        struct EX_MEM {//todo simplify to former edition
             bool isBusy = false;
-            uint pc = 0u;
             opType type = NOPE;
             uint pos = 0u;
-            uint data = 0u;
+            uint pos_data = 0u;
             uint rd = 0u;
             uint rd_data = 0u;
         } reg3;
@@ -160,7 +159,8 @@ namespace Mzu {
             if (reg3.rd)
                 if (reg3.rd == rs1 || reg3.rd == rs2) return;
 
-            if (reg2.rd != 0u) jar.check(reg2.rd) = true;
+            if (reg2.rd != 0u)
+                jar.check(reg2.rd) = true;
             reg1.isBusy = false;
             reg2.isBusy = true;
         }
@@ -172,7 +172,6 @@ namespace Mzu {
 #ifdef Debug_Printer
             std::cout << "reg2: " << reg2.type << std::endl;
 #endif
-            reg3.pc = reg2.pc;
             reg3.rd = reg2.rd;
             reg3.isBusy = true;
             bool flag = false;
@@ -210,13 +209,13 @@ namespace Mzu {
                 case LW:
                 case LBU:
                 case LHU:
-                    reg3.rd_data = reg2.rs1_data + reg2.imm;
+                    reg3.pos = reg2.rs1_data + reg2.imm;
                     break;
                 case SB:
                 case SH:
                 case SW:
-                    reg3.rd_data = reg2.rs2_data;
-                    reg3.rd = reg2.rs1_data + reg2.imm;
+                    reg3.pos_data = reg2.rs2_data;
+                    reg3.pos = reg2.rs1_data + reg2.imm;
                     break;
                 case ADDI:
                     reg3.rd_data = reg2.rs1_data + reg2.imm;
@@ -343,37 +342,37 @@ namespace Mzu {
                     break;
                 case LB:
                     char data_b;
-                    data_b = (char) box.load(reg3.rd_data, 1);
+                    data_b = (char) box.load(reg3.pos, 1);
                     reg4.rd_data = (uint) data_b;
                     break;
                 case LH:
                     short data_h;
-                    data_h = (short) box.load(reg3.rd_data, 2);
+                    data_h = (short) box.load(reg3.pos, 2);
                     reg4.rd_data = (uint) data_h;
                     break;
                 case LW:
                     int data_w;
-                    data_w = (int) box.load(reg3.rd_data, 4);
+                    data_w = (int) box.load(reg3.pos, 4);
                     reg4.rd_data = (uint) data_w;
                     break;
                 case LBU:
                     uchar data_bu;
-                    data_bu = (uchar) box.load(reg3.rd_data, 1);
+                    data_bu = (uchar) box.load(reg3.pos, 1);
                     reg4.rd_data = (uint) data_bu;
                     break;
                 case LHU:
                     ushort data_hu;
-                    data_hu = (ushort) box.load(reg3.rd_data, 2);
+                    data_hu = (ushort) box.load(reg3.pos, 2);
                     reg4.rd_data = (uint) data_hu;
                     break;
                 case SB:
-                    box.store(reg3.rd, reg3.rd_data, 1);
+                    box.store(reg3.pos, reg3.pos_data, 1);
                     break;
                 case SH:
-                    box.store(reg3.rd, reg3.rd_data, 2);
+                    box.store(reg3.pos, reg3.pos_data, 2);
                     break;
                 case SW:
-                    box.store(reg3.rd, reg3.rd_data, 4);
+                    box.store(reg3.pos, reg3.pos_data, 4);
                     break;
                 case NOPE:
                     break;
@@ -381,17 +380,19 @@ namespace Mzu {
                     reg4.rd_data = reg3.rd_data;
             }
             reg3.type = NOPE;
-            reg3.rd = reg3.rd_data = 0u;
+            reg3.pos = reg3.pos_data = reg3.rd = reg3.rd_data = 0u;
         }
 
         void WB() {//Write Back
             if (!reg4.isBusy) return;
-#ifdef Debug_Printer
-//            printReg();
+#ifdef Debug_Printer_Jar
+            printReg();
 #endif
             reg4.isBusy = false;
-//            if (reg4.rd == 0) return;/////////////
-
+            if (reg4.rd == 0) return;
+#ifdef Debug_Printer
+            if (reg4.rd != 0) std::cout << "reg4: " << reg4.type << std::endl;
+#endif
             switch (reg4.type) {
                 case BEQ:
                 case BNE:
@@ -407,16 +408,15 @@ namespace Mzu {
                 default:
                     if (reg4.rd != 0) {
                         jar.check(reg4.rd) = false;
-#ifdef Debug_Printer
-                        printJar();
-#endif
+
                         jar[reg4.rd] = reg4.rd_data;
+#ifdef Debug_Printer
+                        printReg();
+#endif
                     }
                     break;
             }
-#ifdef Debug_Printer
-            std::cout << "reg4: " << reg4.type << std::endl;
-#endif
+
             reg4.rd_data = reg4.rd = 0u;
             reg4.type = NOPE;
         }
@@ -467,7 +467,7 @@ namespace Mzu {
             while (reg1.code != END) {
 #ifdef Debug
                 ++i;
-                if (i == 120)
+                if (i == 354)
                     break;
 #endif
                 WB();

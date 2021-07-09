@@ -196,7 +196,7 @@ namespace Mzu {
             case SB:
             case SH:
             case SW:
-                if (inst31 == 1u) imm += (0x1fffffu << 6);
+                if (inst31 == 1u) imm += (0xfffffu << 7);
                 imm += (op >> 25);
                 imm <<= 5;
                 imm += (op >> 7) & 0b11111u;
