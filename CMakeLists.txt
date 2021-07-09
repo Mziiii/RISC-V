@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.17)
-project(RISC_V)
+cmake_minimum_required(VERSION 3.16.3)
+project(code)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(RISC_V main.cpp MemoryBox.h MyCpu.h Operator.h Parser.h)
+add_executable(code main.cpp MemoryBox.h MyCpu.h Operator.h Parser.h)
