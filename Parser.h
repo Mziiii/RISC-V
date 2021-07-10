@@ -128,12 +128,43 @@ namespace Mzu {
         }
     }
 
-    uint getRS1(uint op) {
+    uint getRS1(uint op, opType type) {
+        switch (type) {
+            case LUI:
+            case AUIPC:
+            case JAL:
+                return 0u;
+            default:
+                break;
+        }
         return (op >> 15) & 0b11111u;
     }
 
-    uint getRS2(uint op) {
-        return (op >> 20) & 0b11111u;
+    uint getRS2(uint op, opType type) {
+        switch (type) {
+            case BEQ:
+            case BNE:
+            case BLT:
+            case BGE:
+            case BLTU:
+            case BGEU:
+            case SB:
+            case SH:
+            case SW:
+            case ADD:
+            case SUB:
+            case SLL:
+            case SLT:
+            case SLTU:
+            case XOR:
+            case SRL:
+            case SRA:
+            case OR:
+            case AND:
+                return (op >> 20) & 0b11111u;
+            default:
+                return 0u;
+        }
     }
 
     uint getRD(uint op) {
@@ -179,6 +210,7 @@ namespace Mzu {
                 imm += (((op >> 7) & 1u) << 11);
                 if (inst31 == 1u) imm += (0xfffffu << 12);
                 return imm;
+            case JALR:
             case LB:
             case LH:
             case LW:
