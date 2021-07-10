@@ -484,8 +484,6 @@ namespace Mzu {
 #endif
             }
 #endif
-            uint tmp = box.load(4828, 4);
-            if (tmp == 10000) return 105;
             while (reg1.code != END) {
 #ifdef Debugger
                 ++i;
