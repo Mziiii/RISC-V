@@ -22,7 +22,7 @@ namespace Mzu {
 
         struct Predictor {
             uint success = 0, total = 0;
-            int counter[2048];
+            int counter[4096];
 
             Predictor() {
                 memset(counter, 0, sizeof(counter));
