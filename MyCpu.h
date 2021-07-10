@@ -289,22 +289,23 @@ namespace Mzu {
                 case BLTU:
                 case BGEU: {
                     if (flag) {
-                        if (((pd.counter[(reg2.pc & 0b1111111u)] & 0b10u) >> 1) == 1) ++pd.success;
-                        else {
-                            pc = reg2.pc + reg2.imm;
-                            reg1.isBusy = false;
-                        }
-                        pd.counter[reg2.pc & 0b1111111u] = min(pd.counter[(reg2.pc >> 2u) & 0b111111u] + 1, 3);
-                    } else {
-                        if (((pd.counter[(reg2.pc & 0b1111111u)] & 0b10u) >> 1) == 1) {
-                            pc = reg2.pc + 4;
-                            reg1.isBusy = false;
-                        } else {
-                            ++pd.success;
-                        }
-                        pd.counter[(reg2.pc >> 2u) & 0b111111u] = max(pd.counter[(reg2.pc >> 2u) & 0b111111u] - 1,
-                                                                           0);
-                    }
+                         pc = reg2.pc + reg2.imm;
+//                         if (((pd.counter[(reg2.pc & 0b1111111u)] & 0b10u) >> 1) == 1) ++pd.success;
+//                         else {
+//                             pc = reg2.pc + reg2.imm;
+//                             reg1.isBusy = false;
+//                         }
+//                         pd.counter[reg2.pc & 0b1111111u] = min(pd.counter[(reg2.pc >> 2u) & 0b111111u] + 1, 3);
+//                     } else {
+//                         if (((pd.counter[(reg2.pc & 0b1111111u)] & 0b10u) >> 1) == 1) {
+//                             pc = reg2.pc + 4;
+//                             reg1.isBusy = false;
+//                         } else {
+//                             ++pd.success;
+//                         }
+//                         pd.counter[(reg2.pc >> 2u) & 0b111111u] = max(pd.counter[(reg2.pc >> 2u) & 0b111111u] - 1,
+//                                                                            0);
+//                     }
                 }
             }
 
