@@ -22,7 +22,7 @@ namespace Mzu {
 
         struct Predictor {
             uint success = 0, total = 0;
-            int counter[128];
+            int counter[2048];
 
             Predictor() {
                 memset(counter, 0, sizeof(counter));
@@ -145,9 +145,9 @@ namespace Mzu {
                 case BGE:
                 case BLTU:
                 case BGEU:
-                    if (pd.counter[(reg2.pc >> 2u) & 0b111111u] & 0b10u) pc = reg2.pc + reg2.imm;
-                    else pc = reg2.pc + 4;
-                    ++pd.total;
+//                     if (pd.counter[(reg2.pc >> 2u) & 0b111111u] & 0b10u) pc = reg2.pc + reg2.imm;
+//                     else pc = reg2.pc + 4;
+//                     ++pd.total;
 //                    reg2.pd = pd.counter[(reg1.pc >> 2u) & 0b111111u] & 0b10u;
                 case SB:
                 case SH:
@@ -289,20 +289,21 @@ namespace Mzu {
                 case BLTU:
                 case BGEU: {
                     if (flag) {
-                        if (pd.counter[(reg2.pc >> 2u) & 0b111111u] & 0b10u) ++pd.success;
+                        if (((pd.counter[(reg2.pc & 0b1111111u)] & 0b10u) >> 1) == 1) ++pd.success;
                         else {
                             pc = reg2.pc + reg2.imm;
                             reg1.isBusy = false;
                         }
-                        pd.counter[(reg2.pc >> 2u) & 0b111111u] = min(pd.counter[(reg2.pc >> 2u) & 0b111111u] + 1, 3);
+                        pd.counter[reg2.pc & 0b1111111u] = min(pd.counter[(reg2.pc >> 2u) & 0b111111u] + 1, 3);
                     } else {
-                        if (pd.counter[(reg2.pc >> 2u) & 0b111111u] & 0b10u) {
+                        if (((pd.counter[(reg2.pc & 0b1111111u)] & 0b10u) >> 1) == 1) {
                             pc = reg2.pc + 4;
                             reg1.isBusy = false;
                         } else {
                             ++pd.success;
                         }
-                        pd.counter[(reg2.pc >> 2u) & 0b111111u] = max(pd.counter[(reg2.pc >> 2u) & 0b111111u] - 1, 0);
+                        pd.counter[(reg2.pc >> 2u) & 0b111111u] = max(pd.counter[(reg2.pc >> 2u) & 0b111111u] - 1,
+                                                                           0);
                     }
                 }
             }
