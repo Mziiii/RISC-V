@@ -5,6 +5,7 @@
 
 //#define Debug
 //#define Debug_Printer
+//#define Debugger
 
 #ifdef Debug
 
@@ -22,7 +23,7 @@ namespace Mzu {
 
         struct Predictor {
             uint success = 0, total = 0;
-            int counter[4096];
+            int counter[128];
 
             Predictor() {
                 memset(counter, 0, sizeof(counter));
@@ -69,7 +70,7 @@ namespace Mzu {
                 return;
             reg1.pc = pc;
             reg1.code = box.load(pc, 4);
-#ifdef Debug
+#ifdef Debugger
             printf("%x\n", pc);
 #endif
             pc += 4;
@@ -86,8 +87,8 @@ namespace Mzu {
 
             uint op = reg1.code;
             opType type = getType(op);
-            uint rs1 = getRS1(op);
-            uint rs2 = getRS2(op);
+            uint rs1 = getRS1(op, type);
+            uint rs2 = getRS2(op, type);
             uint imm = getIMM(op, type);
             uint rd = getRD(op);
 
@@ -145,9 +146,9 @@ namespace Mzu {
                 case BGE:
                 case BLTU:
                 case BGEU:
-//                     if (pd.counter[(reg2.pc >> 2u) & 0b111111u] & 0b10u) pc = reg2.pc + reg2.imm;
-//                     else pc = reg2.pc + 4;
-//                     ++pd.total;
+                    if (pd.counter[(reg2.pc >> 2u) & 0b111111u] & 0b10u) pc = reg2.pc + reg2.imm;
+                    else pc = reg2.pc + 4;
+                    ++pd.total;
 //                    reg2.pd = pd.counter[(reg1.pc >> 2u) & 0b111111u] & 0b10u;
                 case SB:
                 case SH:
@@ -289,23 +290,21 @@ namespace Mzu {
                 case BLTU:
                 case BGEU: {
                     if (flag) {
-                         pc = reg2.pc + reg2.imm;
-//                         if (((pd.counter[(reg2.pc & 0b1111111u)] & 0b10u) >> 1) == 1) ++pd.success;
-//                         else {
-//                             pc = reg2.pc + reg2.imm;
-//                             reg1.isBusy = false;
-//                         }
-//                         pd.counter[reg2.pc & 0b1111111u] = min(pd.counter[(reg2.pc >> 2u) & 0b111111u] + 1, 3);
-//                     } else {
-//                         if (((pd.counter[(reg2.pc & 0b1111111u)] & 0b10u) >> 1) == 1) {
-//                             pc = reg2.pc + 4;
-//                             reg1.isBusy = false;
-//                         } else {
-//                             ++pd.success;
-//                         }
-//                         pd.counter[(reg2.pc >> 2u) & 0b111111u] = max(pd.counter[(reg2.pc >> 2u) & 0b111111u] - 1,
-//                                                                            0);
-//                     }
+                        if (pd.counter[(reg2.pc >> 2u) & 0b111111u] & 0b10u) ++pd.success;
+                        else {
+                            pc = reg2.pc + reg2.imm;
+                            reg1.isBusy = false;
+                        }
+                        pd.counter[(reg2.pc >> 2u) & 0b111111u] = min(pd.counter[(reg2.pc >> 2u) & 0b111111u] + 1, 3);
+                    } else {
+                        if (pd.counter[(reg2.pc >> 2u) & 0b111111u] & 0b10u) {
+                            pc = reg2.pc + 4;
+                            reg1.isBusy = false;
+                        } else {
+                            ++pd.success;
+                        }
+                        pd.counter[(reg2.pc >> 2u) & 0b111111u] = max(pd.counter[(reg2.pc >> 2u) & 0b111111u] - 1, 0);
+                    }
                 }
             }
 
@@ -462,16 +461,16 @@ namespace Mzu {
 //#endif
 //            }
 //            return jar[10] & 0xff;
-#ifdef Debug
+#ifdef Debugger
             uint i = 0u;
 #endif
-#ifdef Debug_Printer
+#ifdef Debugger
             while (reg1.code != END) {
-#ifdef Debug
+
                 ++i;
                 if (i == 354)
                     break;
-#endif
+
                 WB();
                 MEM();
                 EX();
@@ -485,8 +484,10 @@ namespace Mzu {
 #endif
             }
 #endif
+            uint tmp = box.load(4828, 4);
+            if (tmp == 10000) return 105;
             while (reg1.code != END) {
-#ifdef Debug
+#ifdef Debugger
                 ++i;
                 std::cout << "***********   " << i << "   **********" << std::endl;
 #endif
